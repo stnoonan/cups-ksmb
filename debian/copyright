@@ -1,15 +1,17 @@
 Format: http://dep.debian.net/deps/dep5
 Upstream-Name: cups-ksmb
-Source: <url://example.com>
+Source: <https://github.com/stnoonan/cups-ksmb>
 
 Files: *
 Copyright: 2009 Sam Mousa <sam@mousa.nl>
            2010 Andre Dill
 	   2011 Vitor Choi Feitosa <vchoi@vchoi.org>
+	   2012 Sean Timothy Noonan <stnoonan@obsolescence.net>
 License: CC BY-SA 3.0
 
 Files: debian/*
 Copyright: 2011 Vitor Choi Feitosa <vchoi@vchoi.org>
+	   2012 Sean Timothy Noonan <stnoonan@obsolescence.net>
 License: CC BY-SA 3.0
 
 License: CC BY-SA 3.0

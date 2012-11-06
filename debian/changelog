@@ -1,3 +1,10 @@
+cups-ksmb (0.3) stable; urgency=low
+
+  * Remove unneeded package files
+  * Rewrite backend script
+
+ -- Sean Timothy Noonan <stnoonan@obsolescence.net>  Tue, 06 Nov 2012 16:25:56 -0500
+
 cups-ksmb (0.2) stable; urgency=low
 
   * Fixed copyright, licensing and packaging stuff.

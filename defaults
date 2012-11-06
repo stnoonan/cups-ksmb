@@ -1,0 +1,2 @@
+debug=false
+ticket_prefix="/tmp/krb5_"

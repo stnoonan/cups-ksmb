@@ -12,6 +12,8 @@ Based on code by A. Martins-Melo.
  . Changed backend description to a shorter string that fits better
    in cups gui.
  . Dirty Debian packaging.
+2012/11/06: Updated by Sean Timothy Noonan <stnoonan@obsolescence.net>
+ . Cleaned up the backend code
 
 Source code and binaries available on github:
    https://github.com/vchoi/cups-ksmb

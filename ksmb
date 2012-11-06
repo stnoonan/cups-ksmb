@@ -1,103 +1,58 @@
 #!/bin/bash
-# To be put in the /usr/lib/cups/backend/
-# Allow Samba kerberized printing on Ubuntu.
+# Kerberized Samba backend for CUPS
+. /etc/default/cups-ksmb
+debug=${debug:=false}
+ticket_prefix=${ticket_prefix:=/tmp/krb5cc_}
 
-# Debuging
-booDebug=0
-strDebugFile="/tmp/printlog"
-if [ $booDebug -eq 0 ]; then
-    output=/dev/null
-else
-    output=$strDebugFile
-fi
-
-# check arguments recieved
 if [ $# -eq 0 ]; then
     echo 'network ksmb "Unknown" "SAMBA + Kerberos"'
     exit 0
-elif [ $# -lt 4 ]; then
-    echo "Usage: $0 job-id user title copies options [file]\n"
-    exit 1
-elif [ $# -gt 6 ]; then
+fi
+
+if [ $# -lt 5 -o $# -gt 6 ]; then
     echo "Usage: $0 job-id user title copies options [file]\n"
     exit 1
 fi
 
+output=/dev/null
+if $debug; then
+    set -x
+    output=$(mktemp /tmp/printlog.XXXXXX)
+fi
+exec >> $output 2>&1
 
-# check if running as root
-if test "root" != "$(whoami)" ; then
-   sudo $0 "$@"
-   exit
+# run as root, can't check $USER due to environment pollution
+if [ "root" != $(whoami) ]; then
+    exec sudo $0 "$@"
 fi
 
-# Username
-strUserName=$2
-
-# Extract Windows printer name and server
-strPrinter=`echo $DEVICE_URI | sed 's,k*smb://,,g'`
-strServer=`echo $strPrinter | sed 's,/.*$,,g'`
-strPrinter=`echo $strPrinter | sed 's,.*/,,g'`
-# fix a space in printer name
-strPrinter=`echo $strPrinter | sed 's,%20,\\\ ,g'`
+printuser=$2
+printer=$(echo $DEVICE_URI | sed 's,k*smb://,,g')
+server=$(echo $printer | sed 's,/.*$,,g')
+printer=$(echo $printer | sed 's,.*/,,g;s,%20,\\\ ,g')
 
 # Set environment variable to ticket cache of user.
-strTicketName=/tmp/krb5cc_`id -u "$strUserName"`
-KRB5CCNAME=`ls $strTicketName*`
-cat $KRB5CCNAME > /dev/null >> $output
-# Debugging:
-if [ $booDebug -eq 1 ]; then
-    echo "Printer: $strPrinter"      >> $output
-    echo "Server: $strServer"        >> $output
-    echo "Ticket cache: $KRB5CCNAME" >> $output
-fi
+uid=$(id -u "$printuser")
+export KRB5CCNAME=$(ls -t /tmp/krb5cc_${uid}_* | head -n 1)
 
-# Export it so smbclient uses it.
-export KRB5CCNAME
+echo "Printer: $printer"
+echo "Server: $server"
+echo "Ticket cache: $KRB5CCNAME"
 
-# data file
-strTmpFile=$( mktemp /tmp/ksmb.XXXXXXXXXXX )
+printdatafile=$(mktemp /tmp/ksmb.XXXXXXXXXXX)
+cleanup() { rm -f $printdatafile; unset KRB5CCNAME; }
+trap "cleanup" 0 1 2 3 15
 
 if [ $# -eq 5 ]; then
     # There are 5 arguments input will follow on stdin.
-    echo "Five arguments received. Tempfile created at $strTmpFile." >> $output
-    cat - > $strTmpFile
-
-else
-    # There are 6 arguments, the 6th is the filename.
-    echo "Six arguments received." >> $output
-    if [ -f $6 ]; then
-        cp $6 $strTmpFile
-    fi
-fi
-
-# print the file
-chown $strUserName $strTmpFile
-strPrintCommand="smbclient //$strServer/$strPrinter -k -E -U \"$strUserName\" -c \"print $strTmpFile\""
-echo "Print command used is: $strPrintCommand" >> $output
-`su -c "$strPrintCommand" $strUserName`
-intReturn=$?
-echo "Return code from smbclient: $intReturn" >> $output
-
-# clean up
-if [ -f $strTmpFile ]; then
-    rm $strTmpFile
-fi
-unset KRB5CCNAME
-
-# How do we exit?
-if [ $intReturn -eq 0 ]; then
-    # If smbclient finished successfully return 0.
-    echo "Exiting with exit code 0." >> $output
-    exit 0
-else
-    # In all other cases return error code 1 which means Failed -- Note: this is not the same as returning $intReturn!
-    echo "Exiting with exit code 1." >> $output
-    echo "Note: If smbclient reports permission errors on the ticket cache" >> $output
-    echo "      check the permissions on this file to make sure it is run " >> $output
-    echo "      as root." >> $output
-    echo "Dumping environment." >> $output
-    env >> $output
+    echo "Tempfile created at $printdatafile."
+    cat - > $printdatafile
+elif ! cp $6 $printdatafile; then
+    echo "Could not copy $6"
     exit 1
 fi
 
-# END
+chown $printuser $printdatafile
+printcmd="smbclient //$server/$printer -k -E -U \"$printuser\" -c \"print $printdatafile\""
+echo "Print command used is: $printcmd"
+exec su -c "$printcmd" $printuser

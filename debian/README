@@ -1,6 +1,4 @@
 The Debian Package cups-ksmb
 ----------------------------
-
-Comments regarding the Package
-
- -- Vitor Choi Feitosa <vchoi@vchoi.org>  Thu, 25 Aug 2011 17:05:50 -0300
+ . To add printer ABC on server SRV, use this URI:
+      ksmb://SRV/ABC
